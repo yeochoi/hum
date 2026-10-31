@@ -19,7 +19,7 @@
   --hero:#14204A; --hero-text:#B9C6FF; --ring:#8FA8FF; --deep:#0A1030;
   --primary:#2F5BFF; --blue-text:#2442C9; --soft:#EEF2FF;
   --bg:#F9FAFC; --surface:#FFFFFF; --ink:#1B1D2B; --muted:#6A6D7C; --line:#E8EAF0;
-  --chip:#EEF0F4; --chip-text:#5B5F6E; --chevron:#868A98; --coral-text:#B4331A;
+  --placeholder:#DCE4FF; --chip:#EEF0F4; --chip-text:#5B5F6E; --chevron:#868A98; --coral-text:#B4331A;
   --font:Outfit,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
   --ease:cubic-bezier(.32,.72,0,1);
@@ -83,6 +83,24 @@ body.layered #page{transform:translateY(calc(var(--st) + 10px)) scale(.92);borde
 /* detail view slides in */
 #view-playlist{background:var(--bg);transform:translateX(100%);transition:transform .4s var(--ease);z-index:2}
 #view-playlist.in{transform:none}
+#view-ds{background:var(--bg);transform:translateX(100%);transition:transform .4s var(--ease);z-index:4;padding-bottom:calc(60px + var(--sb))}
+#view-ds.in{transform:none}
+body.ds-open #mini,body.ds-open #dock{transform:translateY(200%);opacity:0;pointer-events:none}
+#dock{transition:transform .45s var(--ease),opacity .3s}
+.ds-bar{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;padding:calc(var(--st) + 10px) 22px 10px;background:rgba(249,250,252,.86);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.ds-bar h1{margin:0;text-align:center;font-size:17px;font-weight:600}
+.ds h2{margin:32px 0 12px;font-size:20px;line-height:26px;font-weight:600}
+.ds .lead{margin:8px 0 0;color:var(--muted)}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.sw div{border-radius:12px;border:1px solid var(--line);overflow:hidden;font-size:13px;line-height:18px;background:var(--surface)}
+.sw span{display:block;height:48px;border-bottom:1px solid var(--line)}
+.sw p{margin:0;padding:6px 8px}
+.sw i{font-style:normal;color:var(--muted)}
+.tr{padding:14px 16px;border-top:1px solid var(--line)}
+.tr:first-child{border-top:0}
+.tr small{display:block;font-size:13px;line-height:19px;color:var(--muted);padding-top:6px}
+.ds-demo{border-radius:16px;overflow:hidden}
+.ds-static{position:static!important;left:auto!important;right:auto!important;bottom:auto!important;transform:none!important;opacity:1!important;pointer-events:none}
 .edit-row .ctrl{width:36px;height:36px;border-radius:999px;display:flex;align-items:center;justify-content:center}
 .edit-row .ctrl:disabled{opacity:.3}
 .minus{background:#FCEEE8;width:28px!important;height:28px!important}
@@ -178,6 +196,7 @@ body.layered #page{transform:translateY(calc(var(--st) + 10px)) scale(.92);borde
   <section class="view" id="view-songs"></section>
   <section class="view" id="view-playlists" hidden></section>
   <section class="view" id="view-playlist"></section>
+  <section class="view" id="view-ds" lang="en"></section>
 </div>
 
 <div id="mini" hidden>
@@ -242,6 +261,7 @@ const I = {
   plus: c => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
   check: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>`,
   gear: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`,
+  chev: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#868A98" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`,
   grip: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#868A98" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 12h16M4 16h16"/></svg>`,
   up: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1D2B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`,
   dn: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1D2B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
@@ -699,6 +719,8 @@ function drawSheet(anim) {
     html += sheetBar('Settings') + `<div class="sbody ${anim}">
       <div class="card"><div class="menu-row" style="justify-content:space-between"><span class="muted">Songs</span><span>${songs.length}</span></div><div class="menu-row" style="justify-content:space-between"><span class="muted">Storage used</span><span id="stUsed">Checking</span></div><div class="menu-row" style="justify-content:space-between"><span class="muted">Kept safe</span><span id="stSafe">Checking</span></div></div>
       <p class="note">Songs live only on this phone. Keep Hum on your Home Screen and open it now and then so iOS keeps them.</p>
+      <div style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-size:20px;line-height:26px;font-weight:600">About</h2>
+      <div class="card"><button class="menu-row" id="sDesign" style="justify-content:space-between"><span>Design system</span>${I.chev}</button></div></div>
       <button class="danger" id="sWipe">Remove all songs</button></div>`;
   } else if (type === 'confirmWipe') {
     html += sheetBar('') + `<div class="sbody ${anim}"><p style="margin:0">Remove all ${songs.length} songs and ${playlists.length} playlists from Hum? Your files in Files stay.</p>
@@ -773,6 +795,7 @@ function wireSheet(type, data, s) {
   }
   if (type === 'settings') {
     $('sWipe').onclick = () => openSheet('confirmWipe');
+    $('sDesign').onclick = () => { closeSheet(); openDesign(); };
     (async () => {
       try { const e = await navigator.storage.estimate(); $('stUsed').textContent = (e.usage / 1048576).toFixed(0) + ' MB'; } catch (e) { $('stUsed').textContent = 'Unknown'; }
       try { const p = navigator.storage.persisted ? await navigator.storage.persisted() : false; $('stSafe').textContent = p ? 'Yes' : 'Not yet'; } catch (e) { $('stSafe').textContent = 'Unknown'; }
@@ -785,6 +808,79 @@ function wireSheet(type, data, s) {
       songs = []; playlists = []; closeSheet(); closeNP(); closePlaylist(); render(); $('welcome').hidden = false;
     };
   }
+}
+
+/* ---------- design system ---------- */
+// Built from the app's own classes and CSS variables, so it always shows what the app really uses.
+// Always in English, whatever the app language.
+const DS_COLORS = [['Hero', 'hero'], ['Hero text', 'hero-text'], ['Ring', 'ring'], ['Deep', 'deep'], ['Primary', 'primary'], ['Blue text', 'blue-text'], ['Soft', 'soft'], ['Placeholder', 'placeholder'], ['Background', 'bg'], ['Surface', 'surface'], ['Ink', 'ink'], ['Muted', 'muted'], ['Line', 'line'], ['Chip', 'chip'], ['Chip text', 'chip-text'], ['Chevron', 'chevron'], ['Coral text', 'coral-text']];
+const DS_RULES = [
+  'Blue acts. Primary is a fill, blue text always uses Blue text.',
+  'Coral only removes things, always last and always asks first.',
+  'Covers without art all use one Placeholder, so colour never pretends to mean something.',
+  'Only two weights, 400 and 600. Inputs are 17 so iOS does not zoom.',
+  'Things that float are glass with a shadow. Everything on the page is flat.',
+  'Sheets slide up, the page shrinks behind, and a swipe down closes them.',
+  'The plus button always means Import songs.',
+  'Hum never changes your original files.'
+];
+function openDesign() { renderDesign(); document.body.classList.add('ds-open'); requestAnimationFrame(() => $('view-ds').classList.add('in')); }
+function closeDesign() { $('view-ds').classList.remove('in'); document.body.classList.remove('ds-open'); }
+function renderDesign() {
+  const cs = getComputedStyle(document.documentElement);
+  const ph = { id: 'ds-sample', art: null, title: 'Clair de lune', artist: 'Debussy', duration: 303 };
+  const row = (t, a, time, on) => `<div class="row${on ? ' on' : ''}"><span class="art s44" style="background-color:${PH}">${NOTE(20, '#2F5BFF')}</span><span class="txt"><span class="t ell">${t}</span><span class="small muted ell">${a}</span></span><span class="time">${time}</span></div>`;
+  let h = `<div class="ds-bar"><button class="round light" id="dsBack" aria-label="Back">${I.back('#1B1D2B')}</button><h1>Design system</h1><span></span></div><div class="content ds" style="gap:0">`;
+  h += `<div class="hero" style="border-radius:16px;padding:22px"><div style="display:flex;align-items:center;gap:14px"><img src="icon-180.png" alt="" width="56" height="56" style="border-radius:13px"><div><h1 style="font-size:34px">Hum</h1><p class="sub small" style="margin-top:4px">Your own music, ready to play.</p></div></div></div>`;
+  h += `<p class="lead">Same family as Stay Counter, Manna and Shuo. The same type scale, layout and iOS motion, in electric blue.</p>`;
+
+  h += `<h2>Color</h2><div class="sw">${DS_COLORS.map(c => { const v = cs.getPropertyValue('--' + c[1]).trim(); return `<div><span style="background:${v}"></span><p>${c[0]}<br><i>${v}</i></p></div>`; }).join('')}</div>`;
+
+  h += `<h2>Type</h2><div class="card">
+    <div class="tr"><div style="font-size:34px;line-height:38px;font-weight:600;letter-spacing:-.02em">Songs</div><small>Display 34 · screen titles</small></div>
+    <div class="tr"><div style="font-size:28px;line-height:32px;font-weight:600;letter-spacing:-.02em">Clair de lune</div><small>Player 28 · Now playing and playlist names</small></div>
+    <div class="tr"><div style="font-size:20px;line-height:26px;font-weight:600">All songs</div><small>Section 20 · section headers</small></div>
+    <div class="tr"><div style="font-weight:600">Add to playlist</div><small>Title 17 semibold · buttons, sheet titles, the playing song</small></div>
+    <div class="tr"><div>Gymnopédie No.1</div><small>Body 17 · song titles, fields, menu rows</small></div>
+    <div class="tr"><div class="small muted">Erik Satie · 3:05</div><small>Small 13 · artists, times, notes, tabs</small></div></div>`;
+
+  h += `<h2>Hero</h2><div class="hero ds-demo" style="padding:22px"><div class="hero-top"><h1>Songs</h1><span class="round" aria-hidden="true">${I.gear}</span></div><p class="sub">24 songs · 1 h 52 min</p><div class="pair"><span class="pill blue">${I.play(18, '#fff')}Play</span><span class="pill glass">${I.shuffle('#fff')}Shuffle</span></div></div>`;
+
+  h += `<h2>Song rows</h2><div class="card">${row('Clair de lune', 'Debussy', 'Playing', true)}${row('Gymnopédie No.1', 'Erik Satie', '3:05')}${row('track_03_final', 'Unknown artist', '4:20')}</div>
+    <p class="small muted" style="margin:8px 4px 0">Tap plays from the list. Hold opens the song menu.</p>`;
+
+  h += `<h2>Mini player and tab bar</h2><div style="background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:16px 10px;display:flex;flex-direction:column;gap:14px">
+    <div style="position:relative;height:64px;background:rgba(255,255,255,.86);border:1px solid rgba(0,0,0,.05);border-radius:18px;box-shadow:0 6px 24px rgba(20,32,74,.14);display:flex;align-items:center;gap:12px;padding:0 6px 0 10px">
+      <span class="art s44" style="background-color:${PH}">${NOTE(20, '#2F5BFF')}</span><span style="flex:1;display:flex;flex-direction:column;min-width:0"><span style="font-weight:600">${ph.title}</span><span class="small muted">${ph.artist}</span></span><span class="ib">${I.pause(24, '#1B1D2B')}</span>
+      <span style="position:absolute;left:14px;right:14px;bottom:5px;height:2px;border-radius:1px;background:var(--line)"><i style="display:block;width:44%;height:100%;background:var(--primary)"></i></span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 10px"><span style="background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.04);box-shadow:0 4px 24px rgba(20,32,74,.10);border-radius:999px;display:flex;gap:6px;padding:6px">
+      <span class="tab on" style="background:rgba(238,242,255,.95);border-radius:999px">${NOTE(25, '#2F5BFF')}Songs</span><span class="tab"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h12M3 12h12M3 18h8M17 18V8l4-1"/><circle cx="15" cy="18" r="2"/></svg>Playlists</span></span>
+      <span style="width:62px;height:62px;border-radius:999px;background:var(--primary);box-shadow:0 4px 24px rgba(20,32,74,.18);display:flex;align-items:center;justify-content:center">${I.plus('#fff')}</span></div></div>`;
+
+  h += `<h2>Now playing</h2><div class="hero ds-demo" style="padding:22px;gap:20px">
+    <div><input type="range" class="seek" min="0" max="100" value="44" style="--p:44%" aria-label="Sample position"><div class="times"><span>2:14</span><span>-2:49</span></div></div>
+    <div class="ctrls"><span class="ctl tog on">${I.shuffle('currentColor')}</span><span class="ctl">${I.prev}</span><span class="ctl play">${I.pause(32, '#fff')}</span><span class="ctl">${I.next}</span><span class="ctl tog">${I.repeat}</span></div></div>`;
+
+  h += `<h2>Edit order</h2><div class="card" style="overflow:visible">
+    <div class="row edit-row"><span class="ctrl minus" style="border-radius:999px;display:flex;align-items:center;justify-content:center">${I.minus}</span><span class="txt"><span>Gymnopédie No.1</span><span class="small muted">Erik Satie</span></span><span class="grip">${I.grip}</span></div>
+    <div class="row edit-row lifted" style="transform:scale(1.02)"><span class="ctrl minus" style="border-radius:999px;display:flex;align-items:center;justify-content:center">${I.minus}</span><span class="txt"><span>Clair de lune</span><span class="small muted">Debussy</span></span><span class="grip">${I.grip}</span></div></div>`;
+
+  h += `<h2>Fields</h2><div class="card"><div class="field"><span>Title</span><span style="flex:1">Clair de lune</span><span class="clr">${I.clr}</span></div><div class="field"><span>Artist</span><span style="flex:1;color:var(--muted)">Add artist</span></div></div>
+    <p class="note" style="margin-top:12px">Changes the name only in Hum. Your original file stays the same.</p>`;
+
+  h += `<h2>Buttons</h2><div style="display:flex;flex-direction:column;gap:10px"><span class="big-btn blue">Save</span><span class="big-btn soft">${I.plus('#2442C9')}New playlist</span><span class="danger">Remove from library</span></div>`;
+
+  h += `<h2>Rules</h2><div class="card">${DS_RULES.map(r => `<div class="tr">${r}</div>`).join('')}</div>`;
+  $('view-ds').innerHTML = h + '</div>';
+  $('view-ds').scrollTop = 0;
+  $('dsBack').onclick = closeDesign;
+}
+swipeBack();
+function swipeBack() {
+  const v = $('view-ds'); let x0 = null, dx = 0;
+  v.addEventListener('touchstart', e => { const t = e.touches[0]; if (t.clientX > 30) return; x0 = t.clientX; dx = 0; v.style.transition = 'none'; }, { passive: true });
+  v.addEventListener('touchmove', e => { if (x0 == null) return; dx = Math.max(0, e.touches[0].clientX - x0); v.style.transform = `translateX(${dx}px)`; }, { passive: true });
+  v.addEventListener('touchend', () => { if (x0 == null) return; v.style.transition = ''; v.style.transform = ''; if (dx > 100) closeDesign(); x0 = null; });
 }
 
 /* ---------- tabs ---------- */
