@@ -628,12 +628,18 @@ function layer() { document.body.classList.toggle('layered', npOpen || sheetOpen
 function openNP() { if (!cur) return; npOpen = true; renderPlayer(); $('np').classList.add('open'); layer(); }
 function closeNP() { npOpen = false; $('np').classList.remove('open'); layer(); }
 // swipe down to close
-(function swipe(el, close) {
+function swipe(el, close) {
   let y0 = null, dy = 0;
-  el.addEventListener('touchstart', e => { if (e.target.closest('input')) return; y0 = e.touches[0].clientY; dy = 0; el.style.transition = 'none'; }, { passive: true });
+  el.addEventListener('touchstart', e => {
+    if (e.target.closest('input,.grip')) return;
+    const sc = e.target.closest('.sbody'); if (sc && sc.scrollTop > 0) return;
+    y0 = e.touches[0].clientY; dy = 0; el.style.transition = 'none';
+  }, { passive: true });
   el.addEventListener('touchmove', e => { if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0); el.style.transform = `translateY(${dy}px)`; }, { passive: true });
   el.addEventListener('touchend', () => { if (y0 == null) return; el.style.transition = ''; el.style.transform = ''; if (dy > 120) close(); y0 = null; });
-})($('np'), closeNP);
+}
+swipe($('np'), closeNP);
+swipe($('sheet'), () => closeSheet());
 
 /* ---------- light sheet ---------- */
 let sheetStack = [];
