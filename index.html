@@ -248,6 +248,7 @@ const I = {
   clr: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6A6D7C" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
   minus: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B4331A" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"/></svg>`
 };
+const PH = '#DCE4FF';
 const ARTS = ['#2F5BFF', '#14204A', '#5C7CFF', '#2442C9', '#3A4A7A', '#7B93FF'];
 
 /* ---------- helpers ---------- */
@@ -284,8 +285,8 @@ const urls = {};
 const artUrls = {};
 function songUrl(s) { return urls[s.id] || (urls[s.id] = URL.createObjectURL(s.blob)); }
 function artUrl(s) { if (!s.art) return null; return artUrls[s.id] || (artUrls[s.id] = URL.createObjectURL(s.art)); }
-function artStyle(s) { const u = artUrl(s); return u ? `background-image:url('${u}')` : `background-color:${ARTS[hash(s.id) % ARTS.length]}`; }
-function artInner(s, size) { return artUrl(s) ? '' : NOTE(size); }
+function artStyle(s) { const u = artUrl(s); return u ? `background-image:url('${u}')` : `background-color:${PH}`; }
+function artInner(s, size) { return artUrl(s) ? '' : NOTE(size, '#2F5BFF'); }
 const byId = id => songs.find(s => s.id === id);
 
 /* ---------- state ---------- */
@@ -465,13 +466,13 @@ function plMeta(p) {
 }
 function plCover(p) {
   const first = p.songIds.map(byId).find(s => s && s.art);
-  return first ? `background-image:url('${artUrl(first)}')` : `background-color:${ARTS[hash(p.id) % ARTS.length]}`;
+  return first ? `background-image:url('${artUrl(first)}')` : `background-color:${PH}`;
 }
 function renderPlaylists() {
   $('view-playlists').innerHTML = `
   <div class="hero"><div class="hero-top"><h1>Playlists</h1></div><p class="sub">${playlists.length} ${playlists.length === 1 ? 'playlist' : 'playlists'}</p></div>
   <div class="content">
-    ${playlists.length ? `<div class="grid">${playlists.map(p => `<button class="tile" data-pl="${p.id}"><span class="cover" style="${plCover(p)}">${NOTE(28, 'rgba(255,255,255,.9)')}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="ell" style="font-weight:600">${esc(p.name)}</span><span class="small muted">${plMeta(p)}</span></span></button>`).join('')}</div>` : `<p class="muted" style="margin:8px 4px">Group songs for a mood, a walk, or work.</p>`}
+    ${playlists.length ? `<div class="grid">${playlists.map(p => `<button class="tile" data-pl="${p.id}"><span class="cover" style="${plCover(p)}">${p.songIds.map(byId).find(s => s && s.art) ? '' : NOTE(28, '#2F5BFF')}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="ell" style="font-weight:600">${esc(p.name)}</span><span class="small muted">${plMeta(p)}</span></span></button>`).join('')}</div>` : `<p class="muted" style="margin:8px 4px">Group songs for a mood, a walk, or work.</p>`}
     <button class="big-btn soft" id="newPl" style="margin-top:4px">${I.plus('#2442C9')}New playlist</button>
   </div>`;
   $('newPl').onclick = () => openSheet('newPlaylist');
@@ -489,7 +490,7 @@ function renderPlaylist() {
   <div class="hero">
     <div class="hero-top"><button class="round" id="plBack" aria-label="Back to playlists">${I.back('#fff')}</button><button id="plEdit" style="color:#fff;font-weight:600;padding:10px 0">${editMode ? 'Done' : 'Edit'}</button></div>
     <div style="display:flex;gap:16px;align-items:center">
-      <span class="art" style="width:96px;height:96px;border-radius:16px;${plCover(p)}">${p.songIds.map(byId).find(s => s && s.art) ? '' : NOTE(40, 'rgba(255,255,255,.9)')}</span>
+      <span class="art" style="width:96px;height:96px;border-radius:16px;${plCover(p)}">${p.songIds.map(byId).find(s => s && s.art) ? '' : NOTE(40, '#2F5BFF')}</span>
       <div style="display:flex;flex-direction:column;gap:6px;min-width:0"><h1 style="font-size:28px;line-height:32px" class="ell">${esc(p.name)}</h1><span class="sub" style="color:var(--hero-text)">${plMeta(p)}</span></div>
     </div>
     ${editMode ? '' : `<div class="pair"><button class="pill blue" id="plPlay">${I.play(18, '#fff')}Play</button><button class="pill glass" id="plShuf">${I.shuffle('#fff')}Shuffle</button></div>`}
@@ -593,7 +594,7 @@ function renderPlayer() {
     <span class="grab"></span>
     <div class="sbar" style="margin-top:-6px"><button class="round dark36" id="npClose" aria-label="Close">${I.down}</button><span class="small" style="text-align:center;color:var(--hero-text)" >Playing from ${esc(ctxName())}</span><button class="round dark36" id="npMore" aria-label="More" style="justify-self:end">${I.more}</button></div>
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:26px;min-height:0">
-      <div class="cover" style="${artStyle(s)}">${artUrl(s) ? '' : NOTE(96, 'rgba(255,255,255,.9)')}</div>
+      <div class="cover" style="${artStyle(s)}">${artUrl(s) ? '' : NOTE(96, '#2F5BFF')}</div>
       <div class="meta"><div style="display:flex;flex-direction:column;gap:4px;min-width:0"><h2 class="ell">${esc(s.title)}</h2><span class="ell" style="color:var(--hero-text)">${esc(s.artist || 'Unknown artist')}</span></div><button class="round" id="npAdd" aria-label="Add to playlist">${I.addList('#fff')}</button></div>
       <div><input type="range" class="seek" id="seek" min="0" max="${d || 1}" step="0.1" value="${audio.currentTime || 0}" aria-label="Song position"><div class="times"><span id="tCur">${fmt(audio.currentTime)}</span><span id="tLeft">-${fmt(d - (audio.currentTime || 0))}</span></div></div>
       <div class="ctrls">
