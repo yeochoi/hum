@@ -123,6 +123,7 @@ body.layered #page{transform:translateY(calc(var(--st) + 10px)) scale(.92);borde
 .field:first-child{border-top:0}
 .field span{width:64px;color:var(--muted);flex-shrink:0}
 .field input{flex:1;min-width:0;border:0;background:none;outline:none;padding:0;font-size:17px}
+.clr{width:28px;height:28px;border-radius:999px;background:var(--chip);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .check{width:26px;height:26px;border-radius:999px;border:2px solid #D5D8E2;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .check.on{border:0;background:var(--primary)}
 .menu-row{display:flex;align-items:center;gap:14px;min-height:54px;padding:0 16px;width:100%;text-align:left;border-top:1px solid var(--line)}
@@ -235,6 +236,7 @@ const I = {
   gear: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`,
   up: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1D2B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg>`,
   dn: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B1D2B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
+  clr: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6A6D7C" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
   minus: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B4331A" stroke-width="3" stroke-linecap="round"><path d="M5 12h14"/></svg>`
 };
 const ARTS = ['#2F5BFF', '#14204A', '#5C7CFF', '#2442C9', '#3A4A7A', '#7B93FF'];
@@ -630,7 +632,7 @@ function drawSheet(anim) {
   } else if (type === 'editInfo' && s) {
     html += sheetBar('Edit info') + `<div class="sbody ${anim}">
       <span class="art" style="width:120px;height:120px;border-radius:20px;align-self:center;${artStyle(s)}">${artInner(s, 48)}</span>
-      <div class="card"><label class="field" for="eTitle"><span>Title</span><input type="text" id="eTitle" value="${esc(s.title)}" maxlength="120"></label><label class="field" for="eArtist"><span>Artist</span><input type="text" id="eArtist" value="${esc(s.artist)}" placeholder="Add artist" maxlength="120"></label></div>
+      <div class="card"><label class="field" for="eTitle"><span>Title</span><input type="text" id="eTitle" value="${esc(s.title)}" placeholder="Add title" maxlength="120"><button type="button" class="clr" data-clr="eTitle" aria-label="Clear title">${I.clr}</button></label><label class="field" for="eArtist"><span>Artist</span><input type="text" id="eArtist" value="${esc(s.artist)}" placeholder="Add artist" maxlength="120"><button type="button" class="clr" data-clr="eArtist" aria-label="Clear artist">${I.clr}</button></label></div>
       <div style="display:flex;flex-direction:column;gap:8px"><p class="note">Changes the name only in Hum. Your original file stays the same.</p><button id="eReset" style="align-self:flex-start;color:var(--blue-text);padding:6px 0">Use name from file</button></div>
       <button class="big-btn blue" id="eSave" style="margin-top:auto">Save</button></div>`;
   } else if (type === 'confirmRemove' && s) {
@@ -677,7 +679,11 @@ function wireSheet(type, data, s) {
     $('aDone').onclick = closeSheet;
   }
   if (type === 'editInfo') {
-    $('eReset').onclick = () => { $('eTitle').value = s.fileTitle; $('eArtist').value = s.fileArtist; };
+    const syncClr = () => $('sheet').querySelectorAll('[data-clr]').forEach(b => { b.hidden = !$(b.dataset.clr).value; });
+    ['eTitle', 'eArtist'].forEach(id => $(id).addEventListener('input', syncClr));
+    $('sheet').querySelectorAll('[data-clr]').forEach(b => b.onclick = e => { e.preventDefault(); const inp = $(b.dataset.clr); inp.value = ''; syncClr(); inp.focus(); });
+    syncClr();
+    $('eReset').onclick = () => { $('eTitle').value = s.fileTitle; $('eArtist').value = s.fileArtist; syncClr(); };
     $('eSave').onclick = async () => {
       s.title = $('eTitle').value.trim() || s.fileTitle; s.artist = $('eArtist').value.trim();
       await put('songs', s); updateMeta(); render(); closeSheet(); toast('Saved');
