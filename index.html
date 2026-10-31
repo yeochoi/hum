@@ -22,7 +22,7 @@
   --placeholder:#DCE4FF; --chip:#EEF0F4; --chip-text:#5B5F6E; --chevron:#868A98; --coral-text:#B4331A;
   --font:Outfit,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
-  --ease:cubic-bezier(.32,.72,0,1);
+  --ease:cubic-bezier(.32,.72,0,1); --spring:cubic-bezier(.34,1.36,.5,1);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--deep);overscroll-behavior:none}
@@ -119,8 +119,11 @@ body.ds-open #mini,body.ds-open #dock{transform:translateY(200%);opacity:0;point
 #mini .bar i{display:block;height:100%;width:0;background:var(--primary)}
 .ib{width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:999px}
 #dock{position:absolute;left:22px;right:22px;bottom:calc(var(--sb) + 14px);display:flex;align-items:center;justify-content:space-between;z-index:10}
-#tabs{position:relative;background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);border:1px solid rgba(0,0,0,.04);box-shadow:0 4px 24px rgba(20,32,74,.10);border-radius:999px;display:flex;gap:6px;padding:6px}
-#tabs .glass{position:absolute;top:6px;bottom:6px;left:6px;border-radius:999px;background:rgba(238,242,255,.95);transition:transform .45s var(--ease),width .45s var(--ease)}
+#tabs{position:relative;background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);border:1px solid rgba(0,0,0,.04);box-shadow:0 4px 24px rgba(20,32,74,.10),inset 0 1px 0 rgba(255,255,255,.8);border-radius:999px;display:flex;gap:6px;padding:6px;touch-action:none;-webkit-user-select:none;user-select:none}
+#tabs .glass{position:absolute;top:6px;bottom:6px;left:0;border-radius:999px;background:rgba(238,242,255,.95);pointer-events:none;transition:transform .5s var(--spring),width .5s var(--spring),scale .2s ease-out}
+#tabs .glass.instant{transition:none}
+#tabs .glass.dragging{transition:scale .2s ease-out;scale:1.08}
+.tab.hover{color:var(--blue-text)}
 .tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 20px;font-size:13px;line-height:16px;color:var(--muted)}
 .tab.on{color:var(--blue-text)}
 .tab svg{stroke:currentColor}
@@ -884,10 +887,36 @@ function swipeBack() {
 }
 
 /* ---------- tabs ---------- */
-function moveGlass() {
+function moveGlass(instant) {
   const on = document.querySelector('.tab.on'); const g = $('glass');
-  g.style.width = on.offsetWidth + 'px'; g.style.transform = `translateX(${on.offsetLeft - 6}px)`;
+  if (instant) g.classList.add('instant');
+  g.style.width = on.offsetWidth + 'px'; g.style.transform = `translateX(${on.offsetLeft}px)`;
+  if (instant) { g.offsetWidth; g.classList.remove('instant'); }
 }
+// The pill can be dragged across the bar, like Stay Counter, Manna and Shuo.
+const tabDrag = { on: false, moved: false, x: 0, id: 0, skip: false };
+const tabEls = () => [...document.querySelectorAll('.tab')];
+function nearestTab(x) { let best = null, d = Infinity; tabEls().forEach(b => { const r = b.getBoundingClientRect(), dd = Math.abs(x - (r.left + r.width / 2)); if (dd < d) { d = dd; best = b; } }); return best; }
+$('tabs').addEventListener('pointerdown', e => { tabDrag.skip = false; if (e.pointerType === 'mouse' && e.button !== 0) return; Object.assign(tabDrag, { on: true, moved: false, x: e.clientX, id: e.pointerId }); });
+$('tabs').addEventListener('pointermove', e => {
+  if (!tabDrag.on) return;
+  const g = $('glass'), ls = tabEls();
+  if (!tabDrag.moved) { if (Math.abs(e.clientX - tabDrag.x) < 6) return; tabDrag.moved = true; try { $('tabs').setPointerCapture(tabDrag.id); } catch (x) {} g.classList.add('dragging'); }
+  const w = g.offsetWidth, box = $('tabs').getBoundingClientRect(), first = ls[0], last = ls[ls.length - 1];
+  const x = Math.max(first.offsetLeft, Math.min(last.offsetLeft + last.offsetWidth - w, e.clientX - box.left - w / 2));
+  g.style.transform = `translateX(${x}px)`;
+  const near = nearestTab(e.clientX); ls.forEach(b => b.classList.toggle('hover', b === near && !b.classList.contains('on')));
+});
+function endTabDrag(e) {
+  if (!tabDrag.on) return; tabDrag.on = false;
+  if (!tabDrag.moved) return;
+  tabDrag.skip = true; setTimeout(() => { tabDrag.skip = false; }, 0);
+  $('glass').classList.remove('dragging'); tabEls().forEach(b => b.classList.remove('hover'));
+  const near = nearestTab(e.clientX); if (!near) return;
+  if (near.dataset.tab !== tab) setTab(near.dataset.tab); else moveGlass();
+}
+$('tabs').addEventListener('pointerup', endTabDrag);
+$('tabs').addEventListener('pointercancel', endTabDrag);
 function setTab(t) {
   tab = t;
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
@@ -895,7 +924,16 @@ function setTab(t) {
   if (t === 'songs') { closePlaylist(); renderSongs(); } else renderPlaylists();
   moveGlass();
 }
-document.querySelectorAll('.tab').forEach(b => b.onclick = () => { if (tab === b.dataset.tab && b.dataset.tab === 'playlists' && openPlaylistId) closePlaylist(); setTab(b.dataset.tab); });
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  if (tabDrag.skip) { tabDrag.skip = false; return; }
+  if (tab === b.dataset.tab) {
+    // Tapping the tab you are on goes back to its top, like iOS.
+    if (b.dataset.tab === 'playlists' && openPlaylistId) { closePlaylist(); return; }
+    const v = $(b.dataset.tab === 'songs' ? 'view-songs' : 'view-playlists'); const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    v.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' }); return;
+  }
+  setTab(b.dataset.tab);
+});
 
 function render() { renderSongs(); renderPlaylists(); if (openPlaylistId) renderPlaylist(); renderPlayer(); }
 
@@ -907,7 +945,7 @@ function render() { renderSongs(); renderPlaylists(); if (openPlaylistId) render
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   if (standalone) $('homeTip').hidden = true;
   if (!songs.length) $('welcome').hidden = false;
-  render(); moveGlass();
+  render(); moveGlass(true);
   if (songs.length) {
     let ctxIds = songs.map(s => s.id);
     if (state.ctx && state.ctx.startsWith('pl:')) { const p = playlists.find(x => 'pl:' + x.id === state.ctx); if (p && p.songIds.length) ctxIds = p.songIds.filter(byId); else state.ctx = 'songs'; }
@@ -916,7 +954,7 @@ function render() { renderSongs(); renderPlaylists(); if (openPlaylistId) render
     rebuildQueue(startId);
     load(startId, false, state.lastId === startId ? state.pos : 0);
   }
-  window.addEventListener('resize', moveGlass);
+  window.addEventListener('resize', () => moveGlass(true));
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 })();
