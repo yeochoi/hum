@@ -508,6 +508,39 @@ function renderPlaylists() {
 /* ---------- render: playlist detail ---------- */
 function openPlaylist(id) { openPlaylistId = id; editMode = false; renderPlaylist(); requestAnimationFrame(() => $('view-playlist').classList.add('in')); }
 function closePlaylist() { $('view-playlist').classList.remove('in'); openPlaylistId = null; editMode = false; }
+// Going back from a playlist keeps a name typed in Edit mode, like tapping Done.
+async function leavePlaylist() {
+  if (editMode) {
+    const p = playlists.find(x => x.id === openPlaylistId); const inp = $('plName'); const n = inp && inp.value.trim();
+    if (p && n && n !== p.name) { p.name = n; await put('playlists', p); renderPlaylists(); }
+  }
+  closePlaylist();
+}
+// Swipe from the left edge to go back, like iOS. The page follows the finger.
+(function edgeBack() {
+  const v = $('view-playlist'); let x0 = null, y0 = 0, dx = 0, locked = null;
+  v.addEventListener('touchstart', e => {
+    if (!openPlaylistId) return; const t = e.touches[0]; if (t.clientX > 28) return;
+    x0 = t.clientX; y0 = t.clientY; dx = 0; locked = null;
+  }, { passive: true });
+  v.addEventListener('touchmove', e => {
+    if (x0 == null) return; const t = e.touches[0]; const ddx = t.clientX - x0, ddy = t.clientY - y0;
+    if (locked == null) {
+      if (Math.abs(ddx) < 6 && Math.abs(ddy) < 6) return;
+      locked = Math.abs(ddx) > Math.abs(ddy); if (!locked) { x0 = null; return; }
+      v.style.transition = 'none';
+    }
+    dx = Math.max(0, ddx); const p = Math.min(1, dx / window.innerWidth);
+    v.style.transform = `translateX(${dx}px)`;
+    v.style.boxShadow = `0 0 0 100vmax rgba(10,16,48,${(0.18 * (1 - p)).toFixed(3)}), -6px 0 24px rgba(20,32,74,.18)`;
+  }, { passive: true });
+  const end = () => {
+    if (x0 == null) return; x0 = null; if (!locked) return;
+    v.style.transition = ''; v.style.transform = ''; v.style.boxShadow = '';
+    if (dx > window.innerWidth / 3) leavePlaylist();
+  };
+  v.addEventListener('touchend', end); v.addEventListener('touchcancel', end);
+})();
 function renderPlaylist() {
   const p = playlists.find(x => x.id === openPlaylistId); const v = $('view-playlist');
   if (!p) { v.classList.remove('in'); return; }
@@ -527,7 +560,7 @@ function renderPlaylist() {
     <button class="big-btn soft" id="plAdd">${I.plus('#2442C9')}Add songs</button>
     ${editMode ? '<button class="danger" id="plDelete">Delete playlist</button>' : ''}
   </div>`;
-  $('plBack').onclick = closePlaylist;
+  $('plBack').onclick = leavePlaylist;
   $('plEdit').onclick = async () => {
     if (editMode) { const n = $('plName').value.trim(); if (n && n !== p.name) { p.name = n; await put('playlists', p); renderPlaylists(); } }
     editMode = !editMode; renderPlaylist();
