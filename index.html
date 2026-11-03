@@ -1009,7 +1009,17 @@ document.addEventListener('focusout', () => setTimeout(() => { if (!(document.ac
     load(startId, false, state.lastId === startId ? state.pos : 0);
   }
   window.addEventListener('resize', () => moveGlass(true));
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // Always check GitHub for a new version, never a cached copy.
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+    let had = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!had) { had = true; return; }
+      // A new version is ready. Reload now if nothing is playing, otherwise on the next open.
+      if (audio.paused) location.reload(); else toast('Hum updated. Reopen to see it');
+    });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {}); });
+  }
 })();
 })();
 </script>
