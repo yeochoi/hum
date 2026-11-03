@@ -138,8 +138,10 @@ body.ds-open #mini,body.ds-open #dock{transform:translateY(200%);opacity:0;point
 .backdrop.show{opacity:1;pointer-events:auto}
 .sheet{position:absolute;left:0;right:0;bottom:0;border-radius:18px 18px 0 0;transform:translateY(105%);transition:transform .45s var(--ease);z-index:50;display:flex;flex-direction:column}
 .sheet.open{transform:none}
+#sheet.open{bottom:var(--kb,0px)}
+body.kb-open #mini,body.kb-open #dock{opacity:0;pointer-events:none;transform:translateY(40px)}
 #np{top:calc(var(--st) + 10px);background:var(--hero);color:#fff;z-index:30;padding:10px 22px calc(var(--sb) + 24px);gap:22px;overflow:hidden}
-#sheet{bottom:var(--kb,0px);transition:transform .45s var(--ease),bottom .25s var(--ease);background:var(--bg);max-height:calc(100% - var(--st) - 20px);padding:10px 22px calc(var(--sb) + 24px);overflow:hidden}
+#sheet{bottom:0;transition:transform .45s var(--ease),bottom .25s var(--ease);background:var(--bg);max-height:calc(100% - var(--st) - 20px);padding:10px 22px calc(var(--sb) + 24px);overflow:hidden}
 #sheet.tall{top:calc(var(--st) + 20px)}
 .grab{width:36px;height:5px;border-radius:3px;background:#D5D8E2;align-self:center;margin-bottom:10px;flex-shrink:0}
 #np .grab{background:rgba(255,255,255,.28)}
@@ -943,10 +945,10 @@ function render() { renderSongs(); renderPlaylists(); if (openPlaylistId) render
 function settle() { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
 if (window.visualViewport) {
   const vv = window.visualViewport;
-  const fit = () => { const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); document.body.style.setProperty('--kb', kb + 'px'); settle(); };
+  const fit = () => { const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); document.body.style.setProperty('--kb', kb + 'px'); document.body.classList.toggle('kb-open', kb > 80); settle(); };
   vv.addEventListener('resize', fit); vv.addEventListener('scroll', settle);
 }
-document.addEventListener('focusout', () => setTimeout(() => { if (!(document.activeElement && document.activeElement.matches('input'))) { document.body.style.setProperty('--kb', '0px'); settle(); } }, 60));
+document.addEventListener('focusout', () => setTimeout(() => { if (!(document.activeElement && document.activeElement.matches('input'))) { document.body.style.setProperty('--kb', '0px'); document.body.classList.remove('kb-open'); settle(); } }, 60));
 
 /* ---------- start ---------- */
 (async function start() {
