@@ -522,7 +522,7 @@ function renderPlaylist() {
     ${editMode ? '' : `<div class="pair"><button class="pill blue" id="plPlay">${I.play(18, '#fff')}Play</button><button class="pill glass" id="plShuf">${I.shuffle('#fff')}Shuffle</button></div>`}
   </div>
   <div class="content">
-    ${editMode ? `<div class="card"><label class="field" for="plName"><span>Name</span><input type="text" id="plName" value="${esc(p.name)}" maxlength="40"></label></div>` : ''}
+    ${editMode ? `<div class="card"><label class="field" for="plName"><span>Name</span><input type="text" id="plName" value="${esc(p.name)}" maxlength="40" autocomplete="off" autocorrect="off" enterkeyhint="done"></label></div>` : ''}
     <div class="card" id="plList">${list.length ? list.map((s, i) => editMode ? `<div class="row edit-row" data-k="${i}"><button class="ctrl minus" data-rm="${i}" aria-label="Remove ${esc(s.title)}">${I.minus}</button><span class="txt"><span class="ell">${esc(s.title)}</span><span class="small muted ell">${esc(s.artist || 'Unknown artist')}</span></span><button class="grip" data-grip="${i}" aria-label="Drag to reorder ${esc(s.title)}">${I.grip}</button></div>` : songRow(s, i, { num: true })).join('') : '<div class="empty">No songs yet</div>'}</div>
     <button class="big-btn soft" id="plAdd">${I.plus('#2442C9')}Add songs</button>
     ${editMode ? '<button class="danger" id="plDelete">Delete playlist</button>' : ''}
@@ -703,14 +703,14 @@ function drawSheet(anim) {
   } else if (type === 'editInfo' && s) {
     html += sheetBar('Edit info') + `<div class="sbody ${anim}">
       <span class="art" style="width:120px;height:120px;border-radius:20px;align-self:center;${artStyle(s)}">${artInner(s, 48)}</span>
-      <div class="card"><label class="field" for="eTitle"><span>Title</span><input type="text" id="eTitle" value="${esc(s.title)}" placeholder="Add title" maxlength="120"><button type="button" class="clr" data-clr="eTitle" aria-label="Clear title">${I.clr}</button></label><label class="field" for="eArtist"><span>Artist</span><input type="text" id="eArtist" value="${esc(s.artist)}" placeholder="Add artist" maxlength="120"><button type="button" class="clr" data-clr="eArtist" aria-label="Clear artist">${I.clr}</button></label></div>
+      <div class="card"><label class="field" for="eTitle"><span>Title</span><input type="text" id="eTitle" value="${esc(s.title)}" placeholder="Add title" maxlength="120" autocomplete="off" enterkeyhint="next"><button type="button" class="clr" data-clr="eTitle" aria-label="Clear title">${I.clr}</button></label><label class="field" for="eArtist"><span>Artist</span><input type="text" id="eArtist" value="${esc(s.artist)}" placeholder="Add artist" maxlength="120" autocomplete="off" enterkeyhint="done"><button type="button" class="clr" data-clr="eArtist" aria-label="Clear artist">${I.clr}</button></label></div>
       <div style="display:flex;flex-direction:column;gap:8px"><p class="note">Changes the name only in Hum. Your original file stays the same.</p><button id="eReset" style="align-self:flex-start;color:var(--blue-text);padding:6px 0">Use name from file</button></div>
       <button class="big-btn blue" id="eSave" style="margin-top:auto">Save</button></div>`;
   } else if (type === 'confirmRemove' && s) {
     html += sheetBar('') + `<div class="sbody ${anim}">${songHead}<p style="margin:0">Remove this song from Hum? It also leaves your playlists. The file in Files stays.</p>
       <button class="big-btn" id="cYes" style="background:#FCEEE8;color:var(--coral-text)">Remove song</button></div>`;
   } else if (type === 'newPlaylist') {
-    html += sheetBar('New playlist') + `<div class="sbody ${anim}"><div class="card"><label class="field" for="nName"><span>Name</span><input type="text" id="nName" placeholder="Morning calm" maxlength="40"></label></div>
+    html += sheetBar('New playlist') + `<div class="sbody ${anim}"><div class="card"><label class="field" for="nName"><span>Name</span><input type="text" id="nName" placeholder="Morning calm" maxlength="40" autocomplete="off" autocorrect="off" enterkeyhint="done"></label></div>
       <button class="big-btn blue" id="nSave">Create playlist</button></div>`;
   } else if (type === 'pickSongs') {
     const p = playlists.find(x => x.id === data.pl);
@@ -945,8 +945,16 @@ function render() { renderSongs(); renderPlaylists(); if (openPlaylistId) render
 function settle() { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
 if (window.visualViewport) {
   const vv = window.visualViewport;
-  const fit = () => { const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); document.body.style.setProperty('--kb', kb + 'px'); document.body.classList.toggle('kb-open', kb > 80); settle(); };
-  vv.addEventListener('resize', fit); vv.addEventListener('scroll', settle);
+  // Measure where the visible area ends, after iOS has finished moving things, and lift the sheet to it.
+  const measure = () => {
+    const bodyH = document.body.getBoundingClientRect().height;
+    const kb = Math.max(0, Math.round(bodyH - (vv.offsetTop + vv.height)));
+    document.body.style.setProperty('--kb', kb + 'px');
+    document.body.classList.toggle('kb-open', kb > 80);
+  };
+  const fit = () => { settle(); measure(); requestAnimationFrame(() => { settle(); measure(); }); setTimeout(() => { settle(); measure(); }, 300); };
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit);
+  document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('input')) fit(); });
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (!(document.activeElement && document.activeElement.matches('input'))) { document.body.style.setProperty('--kb', '0px'); document.body.classList.remove('kb-open'); settle(); } }, 60));
 
