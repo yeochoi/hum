@@ -25,6 +25,7 @@
   --ease:cubic-bezier(.32,.72,0,1); --spring:cubic-bezier(.34,1.36,.5,1);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{overflow:hidden}
 html,body{margin:0;height:100%;background:var(--deep);overscroll-behavior:none}
 body{position:relative;height:100vh;height:100lvh;overflow:hidden}
 body{font-family:var(--font);color:var(--ink);font-size:17px;line-height:22px;-webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -78,6 +79,7 @@ body.layered #page{transform:translateY(calc(var(--st) + 10px)) scale(.92);borde
 /* playlists grid */
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
 .tile{display:flex;flex-direction:column;gap:10px;text-align:left}
+.tile .cover.new{background:var(--soft);align-items:center;justify-content:center}
 .tile .cover{aspect-ratio:1;border-radius:16px;display:flex;align-items:flex-end;padding:12px;background-size:cover;background-position:center}
 
 /* detail view slides in */
@@ -137,7 +139,7 @@ body.ds-open #mini,body.ds-open #dock{transform:translateY(200%);opacity:0;point
 .sheet{position:absolute;left:0;right:0;bottom:0;border-radius:18px 18px 0 0;transform:translateY(105%);transition:transform .45s var(--ease);z-index:50;display:flex;flex-direction:column}
 .sheet.open{transform:none}
 #np{top:calc(var(--st) + 10px);background:var(--hero);color:#fff;z-index:30;padding:10px 22px calc(var(--sb) + 24px);gap:22px;overflow:hidden}
-#sheet{background:var(--bg);max-height:calc(100% - var(--st) - 20px);padding:10px 22px calc(var(--sb) + 24px);overflow:hidden}
+#sheet{bottom:var(--kb,0px);transition:transform .45s var(--ease),bottom .25s var(--ease);background:var(--bg);max-height:calc(100% - var(--st) - 20px);padding:10px 22px calc(var(--sb) + 24px);overflow:hidden}
 #sheet.tall{top:calc(var(--st) + 20px)}
 .grab{width:36px;height:5px;border-radius:3px;background:#D5D8E2;align-self:center;margin-bottom:10px;flex-shrink:0}
 #np .grab{background:rgba(255,255,255,.28)}
@@ -495,8 +497,7 @@ function renderPlaylists() {
   $('view-playlists').innerHTML = `
   <div class="hero"><div class="hero-top"><h1>Playlists</h1></div><p class="sub">${playlists.length} ${playlists.length === 1 ? 'playlist' : 'playlists'}</p></div>
   <div class="content">
-    ${playlists.length ? `<div class="grid">${playlists.map(p => `<button class="tile" data-pl="${p.id}"><span class="cover" style="${plCover(p)}">${p.songIds.map(byId).find(s => s && s.art) ? '' : NOTE(28, '#2F5BFF')}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="ell" style="font-weight:600">${esc(p.name)}</span><span class="small muted">${plMeta(p)}</span></span></button>`).join('')}</div>` : `<p class="muted" style="margin:8px 4px">Group songs for a mood, a walk, or work.</p>`}
-    <button class="big-btn soft" id="newPl" style="margin-top:4px">${I.plus('#2442C9')}New playlist</button>
+    <div class="grid"><button class="tile" id="newPl"><span class="cover new"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2442C9" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span style="font-weight:600;color:var(--blue-text)">New playlist</span></button>${playlists.map(p => `<button class="tile" data-pl="${p.id}"><span class="cover" style="${plCover(p)}">${p.songIds.map(byId).find(s => s && s.art) ? '' : NOTE(28, '#2F5BFF')}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="ell" style="font-weight:600">${esc(p.name)}</span><span class="small muted">${plMeta(p)}</span></span></button>`).join('')}</div>${playlists.length ? '' : '<p class="muted" style="margin:16px 4px 0">Group songs for a mood, a walk, or work.</p>'}
   </div>`;
   $('newPl').onclick = () => openSheet('newPlaylist');
   $('view-playlists').querySelectorAll('[data-pl]').forEach(b => b.onclick = () => openPlaylist(b.dataset.pl));
@@ -936,6 +937,16 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
 });
 
 function render() { renderSongs(); renderPlaylists(); if (openPlaylistId) renderPlaylist(); renderPlayer(); }
+
+/* ---------- keyboard ---------- */
+// iOS scrolls the whole app up to show a focused field. Keep the app still and lift only the sheet.
+function settle() { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
+if (window.visualViewport) {
+  const vv = window.visualViewport;
+  const fit = () => { const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop); document.body.style.setProperty('--kb', kb + 'px'); settle(); };
+  vv.addEventListener('resize', fit); vv.addEventListener('scroll', settle);
+}
+document.addEventListener('focusout', () => setTimeout(() => { if (!(document.activeElement && document.activeElement.matches('input'))) { document.body.style.setProperty('--kb', '0px'); settle(); } }, 60));
 
 /* ---------- start ---------- */
 (async function start() {
